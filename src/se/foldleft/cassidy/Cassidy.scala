@@ -38,6 +38,7 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
         try
         {
            work(s)
+           s.flush
         }
         finally
         {
@@ -61,8 +62,6 @@ object Main {
     def main(a : Array[String]) : Unit = {
         val c = new Cassidy(StackPool(SocketProvider("localhost",9610)),Protocol.Binary)
 
-        c.doWork { _.client }
-
-        ()
+        c.doWork { case s : Session => println(s) }
     }
 }
