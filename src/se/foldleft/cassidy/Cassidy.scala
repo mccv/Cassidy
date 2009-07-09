@@ -1,0 +1,84 @@
+/*
+ * Main.scala
+ *
+ * To change this template, choose Tools | Template Manager
+ * and open the template in the editor.
+ */
+
+package se.foldleft.cassidy
+
+import org.apache.cassandra.service._
+import org.apache.thrift._
+import org.apache.thrift.transport._
+import org.apache.thrift.protocol._
+import java.io.{Flushable,Closeable}
+import se.foldleft.pool._
+
+object With{
+
+    def apply[T <: Flushable with Closeable,S](t : T)(work : (T) => S) : Option[S] = {
+        try
+        {
+            val r = work(t)
+            if(r != null)
+            Some(r)
+            else
+            None
+        }
+        finally
+        {
+            try
+            {
+                t.flush
+            }
+            finally
+            {
+                t.close
+            }
+        }
+    }
+}
+
+trait Session extends Closeable with Flushable
+{
+    val client : Cassandra.Client
+}
+
+class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol, outputProtocol : Protocol) extends Closeable
+{
+    def this(transportPool : Pool[T], ioProtocol : Protocol) = this(transportPool,ioProtocol,ioProtocol)
+    
+    def newSession : Session = {
+        val t = transportPool.borrowObject
+        new Session
+        {
+            val client = new Cassandra.Client(inputProtocol.factory.getProtocol(t),outputProtocol.factory.getProtocol(t))
+            def flush = t.flush
+            def close = transportPool.returnObject(t)
+        }
+    }
+
+    def close = transportPool.close
+}
+
+sealed abstract class Protocol(val factory : TProtocolFactory)
+
+object Protocol
+{
+    object Binary extends Protocol(new TBinaryProtocol.Factory)
+    object SimpleJSON extends Protocol(new TSimpleJSONProtocol.Factory)
+    object JSON extends Protocol(new TJSONProtocol.Factory)
+}
+
+object Main {
+    def main(a : Array[String]) : Unit = {
+        val c = new Cassidy(StackPool(SocketProvider("localhost",9610)),Protocol.Binary)
+
+        With(c.newSession) {
+            _.client
+        }
+
+
+        ()
+    }
+}
