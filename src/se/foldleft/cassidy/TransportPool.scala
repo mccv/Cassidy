@@ -15,7 +15,7 @@ trait TransportFactory[T <: TTransport] extends PoolItemFactory[T]
     def passivateObject(transport : T) : Unit = transport.flush
 }
 
-class SocketProvider(val host : String,val port : Int) extends TransportFactory[TSocket]
+case class SocketProvider(val host : String,val port : Int) extends TransportFactory[TSocket]
 {
     def createTransport = new TSocket(host,port)
 }

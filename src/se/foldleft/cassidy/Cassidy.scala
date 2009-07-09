@@ -14,31 +14,6 @@ import org.apache.thrift.protocol._
 import java.io.{Flushable,Closeable}
 import se.foldleft.pool._
 
-object With{
-
-    def apply[T <: Flushable with Closeable,S](t : T)(work : (T) => S) : Option[S] = {
-        try
-        {
-            val r = work(t)
-            if(r != null)
-            Some(r)
-            else
-            None
-        }
-        finally
-        {
-            try
-            {
-                t.flush
-            }
-            finally
-            {
-                t.close
-            }
-        }
-    }
-}
-
 trait Session extends Closeable with Flushable
 {
     val client : Cassandra.Client
@@ -58,6 +33,18 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
         }
     }
 
+    def doWork[R](work : (Session) => R) = {
+        val s = newSession
+        try
+        {
+           work(s)
+        }
+        finally
+        {
+            s.close
+        }
+    }
+
     def close = transportPool.close
 }
 
@@ -74,10 +61,7 @@ object Main {
     def main(a : Array[String]) : Unit = {
         val c = new Cassidy(StackPool(SocketProvider("localhost",9610)),Protocol.Binary)
 
-        With(c.newSession) {
-            _.client
-        }
-
+        c.doWork { _.client }
 
         ()
     }
