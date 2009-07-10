@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XML-Schema-instance" xmlns="http://maven.apache.org/POM/4.0"
+xsi:schemaLocation="http://maven.apache.org/POM/4.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>se.foldleft</groupId>
+    <artifactId>cassidy</artifactId>
+    <packaging>jar</packaging>
+    <version>0.1</version>
+    <name>Cassidy 0.1</name>
+    <url>git@github.com/viktorklang/Cassidy.git</url>
+    <inceptionYear>2009</inceptionYear>
+
+    <developers>
+        <developer>
+            <name>Viktor Klang</name>
+            <id>viktorklang</id>
+            <email>viktorklang@gmail.com</email>
+            <organization>foldleft.se</organization>
+        </developer>
+    </developers>
+
+    <repositories>
+        <repository>
+            <id>scala-tools.org</id>
+            <name>Scala-Tools Maven2 Repository</name>
+            <url>http://scala-tools.org/repo-releases</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Maven Repository Switchboard</name>
+            <layout>default</layout>
+            <url>http://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>commons-pool</groupId>
+            <artifactId>commons-pool</artifactId>
+            <version>1.5.1</version>
+            <optional>false</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.7.5</version>
+            <optional>false</optional>
+        </dependency>
+        <dependency>
+            <groupId>Cassandra</groupId>
+            <artifactId>org.apache.cassandra</artifactId>
+            <version>0.3</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/Cassandra/apache-cassandra-incubating-0.3.0-dev.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>thrift</groupId>
+            <artifactId>org.apache.thrift</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/Cassandra/libthrift.jar</systemPath>
+        </dependency>
+    </dependencies>
+</project>
