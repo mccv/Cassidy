@@ -1,3 +1,7 @@
+/**
+ * TransportPool enables pooling of Thrift TTransports
+ */
+
 package se.foldleft.cassidy
 
 import se.foldleft.pool._

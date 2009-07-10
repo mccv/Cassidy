@@ -71,10 +71,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0 http://maven.apache.org/mave
     </dependencies>
 
     <build>
-        <!--<directory>src</directory>-->
+        <directory>target</directory>
         <outputDirectory>target/classes</outputDirectory>
         <finalName>${artifactId}-${version}</finalName>
-        <sourceDirectory>src</sourceDirectory>
+        <sourceDirectory>src/</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>
         <resources>
             <resource>

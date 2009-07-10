@@ -1,11 +1,11 @@
+/**
+ * PoolBridge bridges the se.foldleft.pool to org.apache.commons.pool
+ */
+
 package se.foldleft.pool
 
 import org.apache.commons.pool._
 import org.apache.commons.pool.impl._
-
-/**
- * PoolBridge is a wrapper/bridge from org.apache.commons.pool to se.foldleft.pool
- */
 
 trait PoolBridge[T,OP <: ObjectPool] extends Pool[T]
 {

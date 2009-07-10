@@ -1,8 +1,5 @@
-/*
- * Main.scala
- *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+/**
+ * Welcome to Cassidy, the Scala Cassandra client
  */
 
 package se.foldleft.cassidy

@@ -1,10 +1,7 @@
-/*
- * Pool.scala
- *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+/**
+ * se.foldleft.pool contain an abstract interface that mimics the API of org.apache.commons.pool
+ * but adds typesafety
  */
-
 package se.foldleft.pool
 
 //ObjectPool
