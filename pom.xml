@@ -64,4 +64,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0 http://maven.apache.org/mave
             <systemPath>${basedir}/lib/Cassandra/libthrift.jar</systemPath>
         </dependency>
     </dependencies>
+
+    <build>
+        <sourceDirectory>src</sourceDirectory>
+        <testSourceDirectory>test</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+    </build>
 </project>
