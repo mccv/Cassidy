@@ -8,17 +8,34 @@
     <name>Cassidy 0.1</name>
     <url>git@github.com/viktorklang/Cassidy.git</url>
     <inceptionYear>2009</inceptionYear>
+    <description>
+    Cassidy is a Scala wrapper around Cassandra
+    </description>
+    <organization>
+        <name>Foldleft</name>
+        <url>http://foldleft.se</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>the Apache License, ASL Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>viktorklang</id>
+            <name>Viktor Klang</name>
+            <timezone>+1</timezone>
+            <email>viktor.klang [at] gmail.com</email>
+            <roles>
+                <role>BDFL</role>
+            </roles>
+        </developer>
+    </developers>
     <properties>
         <scala.version>2.7.5</scala.version>
     </properties>
-    <developers>
-        <developer>
-            <name>Viktor Klang</name>
-            <id>viktorklang</id>
-            <email>viktorklang@gmail.com</email>
-            <organization>foldleft.se</organization>
-        </developer>
-    </developers>
     <repositories>
         <repository>
             <id>scala-tools.org</id>
@@ -37,7 +54,7 @@
         <repository>
             <id>embedded</id>
             <name>Project Embbed Repository</name>
-            <url>file://${basedir}/repo-embedded</url>
+            <url>${basedir}/repo-embedded</url>
             <snapshots/>
             <releases/>
         </repository>

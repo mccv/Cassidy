@@ -54,11 +54,3 @@ object Protocol
     object SimpleJSON extends Protocol(new TSimpleJSONProtocol.Factory)
     object JSON extends Protocol(new TJSONProtocol.Factory)
 }
-
-object Main {
-    def main(a : Array[String]) : Unit = {
-        val c = new Cassidy(StackPool(SocketProvider("localhost",9610)),Protocol.Binary)
-
-        c.doWork { case s : Session => println(s) }
-    }
-}
