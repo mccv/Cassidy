@@ -74,22 +74,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <configuration>
-        <scalaVersion>${scala.version}</scalaVersion>
-        <args>
-            <arg>-target:jvm-1.5</arg>
-            <arg>-unchecked</arg>
-        </args>
-        <launchers>
-            <launcher>
-                <id>main-launcher</id>
-                <mainClass>se.foldleft.cassandra.Main</mainClass>
-                <args>
-                    <arg></arg>
-                </args>
-            </launcher>
-        </launchers>
-    </configuration>
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
         <testSourceDirectory>src/test/scala</testSourceDirectory>
@@ -116,6 +100,21 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                    <args>
+                        <arg>-target:jvm-1.5</arg>
+                        <arg>-unchecked</arg>
+                    </args>
+                    <launchers>
+                        <launcher>
+                            <id>main-launcher</id>
+                            <mainClass>se.foldleft.cassidy.Main</mainClass>
+                            <args>
+                                <arg></arg>
+                            </args>
+                        </launcher>
+                    </launchers>
+                    
                     <jvmArgs>
                         <jvmArg>-Xmx1024m</jvmArg>
                     </jvmArgs>
