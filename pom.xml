@@ -34,6 +34,13 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0 http://maven.apache.org/mave
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>embedded</id>
+            <name>Project Embbed Repository</name>
+            <url>file://${basedir}/repo-embedded</url>
+            <snapshots />
+            <releases />
+        </repository>
     </repositories>
 
     <dependencies>
@@ -50,22 +57,23 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0 http://maven.apache.org/mave
             <optional>false</optional>
         </dependency>
         <dependency>
-            <groupId>Cassandra</groupId>
-            <artifactId>org.apache.cassandra</artifactId>
-            <version>0.3</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/Cassandra/apache-cassandra-incubating-0.3.0-dev.jar</systemPath>
+            <groupId>org.apache</groupId>
+            <artifactId>cassandra</artifactId>
+            <version>0.3.0</version>
+            <optional>false</optional>
         </dependency>
         <dependency>
-            <groupId>thrift</groupId>
-            <artifactId>org.apache.thrift</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/Cassandra/libthrift.jar</systemPath>
+            <groupId>org.apache</groupId>
+            <artifactId>thrift</artifactId>
+            <version>0.1</version>
+            <optional>false</optional>
         </dependency>
     </dependencies>
 
     <build>
+        <!--<directory>src</directory>-->
+        <outputDirectory>target/classes</outputDirectory>
+        <finalName>${artifactId}-${version}</finalName>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>
         <resources>

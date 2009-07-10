@@ -1,3 +1,10 @@
+/*
+ * Main.scala
+ *
+ * To change this template, choose Tools | Template Manager
+ * and open the template in the editor.
+ */
+
 package se.foldleft.cassidy
 
 import org.apache.cassandra.service._
@@ -7,18 +14,11 @@ import org.apache.thrift.protocol._
 import java.io.{Flushable,Closeable}
 import se.foldleft.pool._
 
-/**
- * Session represents - guess what - a Session!
- */
 trait Session extends Closeable with Flushable
 {
     val client : Cassandra.Client
 }
 
-/**
- * Cassidy is a wrapper around Cassandra that uses the Thrift java bindings with a TTransport pool
- * You can find TransportPool samples in PoolBridge.scala
- */
 class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol, outputProtocol : Protocol) extends Closeable
 {
     def this(transportPool : Pool[T], ioProtocol : Protocol) = this(transportPool,ioProtocol,ioProtocol)
@@ -49,10 +49,7 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
     def close = transportPool.close
 }
 
-/**
- * Protocol is just a simple wrapper over TProtocolFactory
- */
-abstract class Protocol(val factory : TProtocolFactory)
+sealed abstract class Protocol(val factory : TProtocolFactory)
 
 object Protocol
 {
@@ -65,6 +62,6 @@ object Main {
     def main(a : Array[String]) : Unit = {
         val c = new Cassidy(StackPool(SocketProvider("localhost",9610)),Protocol.Binary)
 
-        c.doWork { x => println(x) }
+        c.doWork { case s : Session => println(s) }
     }
 }
