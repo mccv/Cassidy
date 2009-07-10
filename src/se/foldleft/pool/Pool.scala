@@ -1,11 +1,9 @@
-/*
- * Pool.scala
- *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
- */
-
 package se.foldleft.pool
+
+/**
+ * Pool is a simple typesafe Scala object pool interface
+ * Just view it as a typesafe wrapper over something like org.apache.commons.pool
+ */
 
 //ObjectPool
 trait Pool[T] extends java.io.Closeable
