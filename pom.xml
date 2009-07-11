@@ -90,6 +90,11 @@
             <version>1.5.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.14</version>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
@@ -126,9 +131,9 @@
                         <launcher>
                             <id>main-launcher</id>
                             <mainClass>se.foldleft.cassidy.Main</mainClass>
-                            <args>
+                            <!--<args>
                                 <arg></arg>
-                            </args>
+                            </args>-->
                         </launcher>
                     </launchers>
                     
