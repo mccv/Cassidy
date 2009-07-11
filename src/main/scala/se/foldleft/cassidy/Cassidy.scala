@@ -22,9 +22,12 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
     
     def newSession : Session = {
         val t = transportPool.borrowObject
+
+        val c = new Cassandra.Client(inputProtocol(t),outputProtocol(t))
+
         new Session
         {
-            val client = new Cassandra.Client(inputProtocol.factory.getProtocol(t),outputProtocol.factory.getProtocol(t))
+            val client = c
             def flush = t.flush
             def close = transportPool.returnObject(t)
         }
@@ -34,8 +37,10 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
         val s = newSession
         try
         {
-           work(s)
-           s.flush
+            val r = work(s)
+            s.flush
+
+            r
         }
         finally
         {
@@ -47,6 +52,9 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
 }
 
 sealed abstract class Protocol(val factory : TProtocolFactory)
+{
+    def apply(transport : TTransport) = factory.getProtocol(transport)
+}
 
 object Protocol
 {
