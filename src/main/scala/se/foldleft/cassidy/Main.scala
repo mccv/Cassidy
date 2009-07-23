@@ -20,8 +20,8 @@ object Main {
      c.doWork { case s : Session => {
                   val user_id = "1"
                   val now = System.currentTimeMillis
-                  s.->("users",user_id,"base_attributes:name", "Chris Goffinet", now, false)
-                  s.->("users",user_id,"base_attributes:name", "24", now, false)
+                  s.++|("users",user_id,"base_attributes:name", "Chris Goffinet", now, false)
+                  s.++|("users",user_id,"base_attributes:name", "24", now, false)
 
                   for( i <- s./("users", user_id, "base_attributes", None,None).toList) println(i)
                   

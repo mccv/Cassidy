@@ -28,7 +28,7 @@ trait Session extends Closeable with Flushable
         client.get_slice_by_names(tableName, key, columnParent, colNames.asJava ).toList
     }
 
-    def <-|(tableName : String, key : String, colPath : String) : Option[column_t] = {
+    def |(tableName : String, key : String, colPath : String) : Option[column_t] = {
         client.get_column(tableName, key, colPath)
     }
 
@@ -36,11 +36,11 @@ trait Session extends Closeable with Flushable
         client.get_column_count(tableName, key, columnParent)
     }
 
-    def ->|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], timestamp : Long, block : Boolean) = {
+    def ++|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], timestamp : Long, block : Boolean) = {
         client.insert(tableName, key, columnPath, cellData,timestamp,block)
     }
 
-    def ->|(batch : batch_mutation_t, block : Boolean) = {
+    def ++|(batch : batch_mutation_t, block : Boolean) = {
         client.batch_insert(batch, block)
     }
 
@@ -64,7 +64,7 @@ trait Session extends Closeable with Flushable
         client.get_superColumn(tableName,key,superColumnPath)
     }
 
-    def ->|^ (batch : batch_mutation_super_t, block : boolean) = {
+    def ++|^ (batch : batch_mutation_super_t, block : boolean) = {
         client.batch_insert_superColumn(batch, block)
     }
 
