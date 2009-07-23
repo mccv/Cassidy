@@ -13,7 +13,70 @@ import se.foldleft.pool._
 
 trait Session extends Closeable with Flushable
 {
-    val client : Cassandra.Client
+    import scala.collection.jcl.Conversions._
+    import org.scala_tools.javautils.Imports._
+
+    private implicit def null2Option[T](t : T) : Option[T] = if(t != null) Some(t) else None
+
+    protected val client : Cassandra.Client
+    
+    def /(tableName : String, key : String, columnParent : String, start : Option[Int],end : Option[Int]) : List[column_t] = {
+        client.get_slice(tableName, key, columnParent, start.getOrElse(-1),end.getOrElse(-1)).toList
+    }
+    
+    def /(tableName : String, key : String, columnParent : String, colNames : List[String]) : List[column_t] = {
+        client.get_slice_by_names(tableName, key, columnParent, colNames.asJava ).toList
+    }
+
+    def <-|(tableName : String, key : String, colPath : String) : Option[column_t] = {
+        client.get_column(tableName, key, colPath)
+    }
+
+    def |#(tableName : String, key : String, columnParent : String) : Int = {
+        client.get_column_count(tableName, key, columnParent)
+    }
+
+    def ->|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], timestamp : Long, block : Boolean) = {
+        client.insert(tableName, key, columnPath, cellData,timestamp,block)
+    }
+
+    def ->|(batch : batch_mutation_t, block : Boolean) = {
+        client.batch_insert(batch, block)
+    }
+
+    def --(tableName : String, key : String, columnPathOrParent : String, timestamp : Long, block : Boolean) = {
+        client.remove(tableName, key, columnPathOrParent, timestamp, block)
+    }
+
+    def /@(tableName : String, key : String, columnParent : String, timestamp : Long) : List[column_t] = {
+        client.get_columns_since(tableName, key, columnParent, timestamp).toList
+    }
+
+    def /^(tableName : String, key : String, columnFamily : String, start : Option[Int], end : Option[Int], count : Int ) : List[superColumn_t] = {
+        client.get_slice_super(tableName, key,columnFamily, start.getOrElse(-1), end.getOrElse(-1)).toList //TODO upgrade thrift interface to support count
+    }
+
+    def /^(tableName : String, key : String, columnFamily : String, superColNames : List[String]) : List[superColumn_t] = {
+        client.get_slice_super_by_names(tableName, key, columnFamily, superColNames.asJava).toList
+    }
+
+    def |^(tableName : String, key : String, superColumnPath : String) : Option[superColumn_t] = {
+        client.get_superColumn(tableName,key,superColumnPath)
+    }
+
+    def ->|^ (batch : batch_mutation_super_t, block : boolean) = {
+        client.batch_insert_superColumn(batch, block)
+    }
+
+    def keys(tableName : String, startsWith : String, stopsAt : String, maxResults : Option[Int]) : List[String] = {
+        client.get_key_range(tableName, startsWith, stopsAt, maxResults.getOrElse(-1)).toList
+    }
+    
+    def property(name : String) : String = client.getStringProperty(name)
+    def properties(name : String) : List[String] = client.getStringListProperty(name).toList
+    def describeTable(tableName : String) = client.describeTable(tableName)
+
+    def ?(query : String) = client.executeQuery(query)
 }
 
 class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol, outputProtocol : Protocol) extends Closeable
