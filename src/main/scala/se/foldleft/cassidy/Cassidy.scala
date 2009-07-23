@@ -19,6 +19,8 @@ trait Session extends Closeable with Flushable
     private implicit def null2Option[T](t : T) : Option[T] = if(t != null) Some(t) else None
 
     protected val client : Cassandra.Client
+
+    val obtainedAt : Long
     
     def /(tableName : String, key : String, columnParent : String, start : Option[Int],end : Option[Int]) : List[column_t] = {
         client.get_slice(tableName, key, columnParent, start.getOrElse(-1),end.getOrElse(-1)).toList
@@ -40,12 +42,20 @@ trait Session extends Closeable with Flushable
         client.insert(tableName, key, columnPath, cellData,timestamp,block)
     }
 
+    def ++|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], block : Boolean) = {
+        client.insert(tableName,key,columnPath,cellData,obtainedAt,block)
+    }
+
     def ++|(batch : batch_mutation_t, block : Boolean) = {
         client.batch_insert(batch, block)
     }
 
     def --(tableName : String, key : String, columnPathOrParent : String, timestamp : Long, block : Boolean) = {
         client.remove(tableName, key, columnPathOrParent, timestamp, block)
+    }
+
+    def --(tableName : String, key : String, columnPathOrParent : String, block : Boolean) = {
+        client.remove(tableName, key, columnPathOrParent, obtainedAt, block)
     }
 
     def /@(tableName : String, key : String, columnParent : String, timestamp : Long) : List[column_t] = {
@@ -64,7 +74,7 @@ trait Session extends Closeable with Flushable
         client.get_superColumn(tableName,key,superColumnPath)
     }
 
-    def ++|^ (batch : batch_mutation_super_t, block : boolean) = {
+    def ++|^ (batch : batch_mutation_super_t, block : Boolean) = {
         client.batch_insert_superColumn(batch, block)
     }
 
@@ -91,6 +101,7 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
         new Session
         {
             val client = c
+            val obtainedAt = System.currentTimeMillis
             def flush = t.flush
             def close = transportPool.returnObject(t)
         }
