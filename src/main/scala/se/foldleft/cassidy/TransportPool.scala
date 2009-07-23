@@ -21,5 +21,9 @@ trait TransportFactory[T <: TTransport] extends PoolItemFactory[T]
 
 case class SocketProvider(val host : String,val port : Int) extends TransportFactory[TSocket]
 {
-    def createTransport = new TSocket(host,port)
+    def createTransport = {
+     val t =   new TSocket(host,port)
+     t.open
+     t
+    }
 }
