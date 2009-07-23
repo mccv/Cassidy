@@ -17,7 +17,7 @@ object Main {
         implicit def strToBytes(s : String) = s.getBytes("UTF-8")
         import scala.collection.jcl.Conversions._
      val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary)
-     c.doWork { case s : Session => {
+     c.doWork { s => {
                   val user_id = "1"
                   val now = System.currentTimeMillis
                   s.++|("users",user_id,"base_attributes:name", "Lord Foo Bar", now, false)
