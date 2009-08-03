@@ -22,71 +22,59 @@ trait Session extends Closeable with Flushable
 
     val obtainedAt : Long
     
-    def /(tableName : String, key : String, columnParent : String, start : Option[Int],end : Option[Int]) : List[column_t] = {
-        client.get_slice(tableName, key, columnParent, start.getOrElse(-1),end.getOrElse(-1)).toList
+    def /(keyspace : String, key : String, columnParent : ColumnParent, start : Array[Byte],end : Array[Byte], ascending : Boolean, count : Int, consistencyLevel : Int) : List[Column] = {
+        client.get_slice(keyspace, key, columnParent, start, end, ascending, count, consistencyLevel).toList
+    }
+
+    def /(keyspace : String, key : String, columnParent : ColumnParent, colNames : List[Array[Byte]], consistencyLevel : Int) : List[Column] = {
+        client.get_slice_by_names(keyspace, key, columnParent, colNames.asJava, consistencyLevel ).toList
+    }
+
+    def |(keyspace : String, key : String, colPath : ColumnPath, consistencyLevel : Int) : Option[Column] = {
+        client.get_column(keyspace, key, colPath, consistencyLevel)
+    }
+
+    def |#(keyspace : String, key : String, columnParent : ColumnParent, consistencyLevel : Int) : Int = {
+        client.get_column_count(keyspace, key, columnParent, consistencyLevel)
+    }
+
+    def ++|(keyspace : String, key : String, columnPath : ColumnPath, value : Array[Byte], timestamp : Long, consistencyLevel : Int) = {
+        client.insert(keyspace, key, columnPath, value,timestamp,consistencyLevel)
+    }
+
+    def ++|(keyspace : String, batch : BatchMutation, consistencyLevel : Int) = {
+        client.batch_insert(keyspace, batch, consistencyLevel)
+    }
+
+    def --(keyspace : String, key : String, columnPathOrParent : ColumnPathOrParent, timestamp : Long, consistencyLevel : Int) = {
+        client.remove(keyspace, key, columnPathOrParent, timestamp, consistencyLevel)
+    }
+
+    def /^(keyspace : String, key : String, columnFamily : String, start : Array[Byte], end : Array[Byte], isAscending : Boolean, count : Int, consistencyLevel : Int ) : List[SuperColumn] = {
+        client.get_slice_super(keyspace, key,columnFamily, start, end,isAscending,consistencyLevel).toList
+    }
+
+    def /^(keyspace : String, key : String, columnFamily : String, superColNames : List[Array[Byte]], consistencyLevel : Int) : List[SuperColumn] = {
+        client.get_slice_super_by_names(keyspace, key, columnFamily, superColNames.asJava,consistencyLevel).toList
+    }
+
+    def |^(keyspace : String, key : String, superColumnPath : SuperColumnPath,consistencyLevel : Int) : Option[SuperColumn] = {
+        client.get_super_column(keyspace,key,superColumnPath,consistencyLevel)
+    }
+
+    def ++|^ (batch : BatchMutationSuper, consistencyLevel : Int) = {
+        client.batch_insert_super_column(batch, consistencyLevel)
+    }
+
+    def keys(keyspace : String, columnFamily : String, startsWith : String, stopsAt : String, maxResults : Option[Int]) : List[String] = {
+        client.get_key_range(keyspace, columnFamily, startsWith, stopsAt, maxResults.getOrElse(-1)).toList
     }
     
-    def /(tableName : String, key : String, columnParent : String, colNames : List[String]) : List[column_t] = {
-        client.get_slice_by_names(tableName, key, columnParent, colNames.asJava ).toList
-    }
+    def property(name : String) : String = client.get_string_property(name)
+    def properties(name : String) : List[String] = client.get_string_list_property(name).toList
+    def describeTable(keyspace : String) = client.describe_keyspace(keyspace)
 
-    def |(tableName : String, key : String, colPath : String) : Option[column_t] = {
-        client.get_column(tableName, key, colPath)
-    }
-
-    def |#(tableName : String, key : String, columnParent : String) : Int = {
-        client.get_column_count(tableName, key, columnParent)
-    }
-
-    def ++|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], timestamp : Long, block : Boolean) = {
-        client.insert(tableName, key, columnPath, cellData,timestamp,block)
-    }
-
-    def ++|(tableName : String, key : String, columnPath : String, cellData : Array[Byte], block : Boolean) = {
-        client.insert(tableName,key,columnPath,cellData,obtainedAt,block)
-    }
-
-    def ++|(batch : batch_mutation_t, block : Boolean) = {
-        client.batch_insert(batch, block)
-    }
-
-    def --(tableName : String, key : String, columnPathOrParent : String, timestamp : Long, block : Boolean) = {
-        client.remove(tableName, key, columnPathOrParent, timestamp, block)
-    }
-
-    def --(tableName : String, key : String, columnPathOrParent : String, block : Boolean) = {
-        client.remove(tableName, key, columnPathOrParent, obtainedAt, block)
-    }
-
-    def /@(tableName : String, key : String, columnParent : String, timestamp : Long) : List[column_t] = {
-        client.get_columns_since(tableName, key, columnParent, timestamp).toList
-    }
-
-    def /^(tableName : String, key : String, columnFamily : String, start : Option[Int], end : Option[Int], count : Int ) : List[superColumn_t] = {
-        client.get_slice_super(tableName, key,columnFamily, start.getOrElse(-1), end.getOrElse(-1)).toList //TODO upgrade thrift interface to support count
-    }
-
-    def /^(tableName : String, key : String, columnFamily : String, superColNames : List[String]) : List[superColumn_t] = {
-        client.get_slice_super_by_names(tableName, key, columnFamily, superColNames.asJava).toList
-    }
-
-    def |^(tableName : String, key : String, superColumnPath : String) : Option[superColumn_t] = {
-        client.get_superColumn(tableName,key,superColumnPath)
-    }
-
-    def ++|^ (batch : batch_mutation_super_t, block : Boolean) = {
-        client.batch_insert_superColumn(batch, block)
-    }
-
-    def keys(tableName : String, startsWith : String, stopsAt : String, maxResults : Option[Int]) : List[String] = {
-        client.get_key_range(tableName, startsWith, stopsAt, maxResults.getOrElse(-1)).toList
-    }
-    
-    def property(name : String) : String = client.getStringProperty(name)
-    def properties(name : String) : List[String] = client.getStringListProperty(name).toList
-    def describeTable(tableName : String) = client.describeTable(tableName)
-
-    def ?(query : String) = client.executeQuery(query)
+    def ?(query : String) = client.execute_query(query)
 }
 
 class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol, outputProtocol : Protocol) extends Closeable

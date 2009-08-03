@@ -19,12 +19,12 @@ object Main {
      val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary)
      c.doWork { s => {
                   val user_id = "1"
-                  s.++|("users",user_id,"base_attributes:name", "Lord Foo Bar", false)
-                  s.++|("users",user_id,"base_attributes:age", "24", false)
+                 // s.++|("users",user_id,"base_attributes:name", "Lord Foo Bar", false)
+                  //s.++|("users",user_id,"base_attributes:age", "24", false)
 
-                  for( i <- s./("users", user_id, "base_attributes", None,None).toList) println(i)
+                  //for( i <- s./("users", user_id, "base_attributes", None,None).toList) println(i)
                   
-
+                  ()
              }
      }
 
