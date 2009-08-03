@@ -16,7 +16,7 @@ object Main {
     def main(a : Array[String]) : Unit = {
         implicit def strToBytes(s : String) = s.getBytes("UTF-8")
         import scala.collection.jcl.Conversions._
-     val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary)
+     val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary,10)
      c.doWork { s => {
                   val user_id = "1"
                  // s.++|("users",user_id,"base_attributes:name", "Lord Foo Bar", false)
