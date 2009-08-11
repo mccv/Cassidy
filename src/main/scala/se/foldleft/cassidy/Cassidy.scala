@@ -71,8 +71,8 @@ trait Session extends Closeable with Flushable
     def /^(keyspace : String, key : String, columnFamily : String, start : Array[Byte], end : Array[Byte], ascending : Boolean, count : Int) : List[SuperColumn] =
         /^(keyspace,key,columnFamily,start,end,ascending,count,consistencyLevel)
 
-    def /^(keyspace : String, key : String, columnFamily : String, start : Array[Byte], end : Array[Byte], isAscending : Boolean, count : Int, consistencyLevel : Int ) : List[SuperColumn] =
-        client.get_slice_super(keyspace, key,columnFamily, start, end,isAscending,count,consistencyLevel).toList
+    def /^(keyspace : String, key : String, columnFamily : String, start : Array[Byte], end : Array[Byte], ascending : Boolean, count : Int, consistencyLevel : Int ) : List[SuperColumn] =
+        client.get_slice_super(keyspace, key,columnFamily, start, end,ascending,count,consistencyLevel).toList
 
     def /^(keyspace : String, key : String, columnFamily : String, superColNames : List[Array[Byte]]) : List[SuperColumn] =
         /^(keyspace,key,columnFamily,superColNames,consistencyLevel)
