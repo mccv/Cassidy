@@ -7,26 +7,25 @@
 
 package se.foldleft.cassidy
 
+import org.apache.cassandra.service.{ConsistencyLevel,ColumnPath}
 import se.foldleft.pool._
 
 object Main {
 
     
 
+  /*
+  import se.foldleft.pool._
+  import se.foldleft.cassidy._
+  import org.apache.cassandra.service._
+   */
+
     def main(a : Array[String]) : Unit = {
         implicit def strToBytes(s : String) = s.getBytes("UTF-8")
         import scala.collection.jcl.Conversions._
-     val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary,10)
-     c.doWork { s => {
-                  val user_id = "1"
-                 // s.++|("users",user_id,"base_attributes:name", "Lord Foo Bar", false)
-                  //s.++|("users",user_id,"base_attributes:age", "24", false)
+     val c = new Cassidy(StackPool(SocketProvider("localhost",9160)),Protocol.Binary,ConsistencyLevel.QUORUM)
 
-                  //for( i <- s./("users", user_id, "base_attributes", None,None).toList) println(i)
-                  
-                  ()
-             }
-     }
+     c.doWork { s => { s++|("SocialGraph","mccv",new ColumnPath("Details",null,"name"),"Mark McBride")}}
 
     }
 }
