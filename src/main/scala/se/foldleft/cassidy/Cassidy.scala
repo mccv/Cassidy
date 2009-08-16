@@ -23,6 +23,8 @@ trait Session extends Closeable with Flushable
     val obtainedAt : Long
     val consistencyLevel : Int
 
+    def /(keyspace : String) = new KeySpace(client,keyspace,obtainedAt,consistencyLevel)
+
     def /(keyspace : String, key : String, columnParent : ColumnParent, start : Array[Byte],end : Array[Byte], ascending : Boolean, count : Int) : List[ColumnOrSuperColumn] =
         /(keyspace,key,columnParent,start,end,ascending,count,consistencyLevel)
 
