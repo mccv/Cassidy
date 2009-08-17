@@ -2,15 +2,14 @@ package se.foldleft.cassidy
 
 import org.apache.cassandra.service._
 
-/**
- * Created by IntelliJ IDEA.
- * User: mmcbride
- * Date: Aug 16, 2009
- * Time: 12:55:45 PM
- * To change this template use File | Settings | File Templates.
- */
-
-class CassidyColumnFamily(client : Cassandra.Client, keyspace : String, key : String, columnFamily : String, obtainedAt : Long, consistencyLevel : Int){
+trait CassidyColumnParent[T]{
+  def |(columnName : Array[Byte], consistencyLevel : Int) : Option[T]
+  def ++|(columnName : Array[Byte], value : Array[Byte], timestamp : Long, consistencyLevel : Int) : Unit
+  def --(columnName : Array[Byte], timestamp : Long, consistencyLevel : Int) : Unit
+  val columnParent : ColumnParent  
+}
+class CassidyColumnFamily(row: Row, columnFamily : String, obtainedAt : Long, consistencyLevel : Int)
+  extends CassidyColumnParent[Column]{
 
   import scala.collection.jcl.Conversions._
   import org.scala_tools.javautils.Imports._
@@ -22,7 +21,7 @@ class CassidyColumnFamily(client : Cassandra.Client, keyspace : String, key : St
     if(colOrSuper != null) Some(colOrSuper.column) else None
 
   def /(columnName : Array[Byte]) = {
-    new CassidyColumn(client,keyspace,key,columnFamily,None,columnName,obtainedAt,consistencyLevel)
+    new CassidyColumn(this,columnName,obtainedAt,consistencyLevel)
   }
   def /(start : Array[Byte],end : Array[Byte], ascending : Boolean, count : Int) : List[Column] =
       /(start,end,ascending,count,consistencyLevel)
@@ -39,19 +38,28 @@ class CassidyColumnFamily(client : Cassandra.Client, keyspace : String, key : St
       /(new SlicePredicate(colNames.asJava,null),consistencyLevel)
 
   def /(predicate : SlicePredicate, consistencyLevel : Int) : List[Column] =
-      client.get_slice(keyspace, key, columnParent, predicate, consistencyLevel).toList
+      row/(columnParent, predicate, consistencyLevel)
 
   def |(columnName : Array[Byte]) : Option[Column] =
       |(columnName,consistencyLevel)
 
   def |(columnName : Array[Byte], consistencyLevel : Int) : Option[Column] =
-      client.get(keyspace, key, new ColumnPath(columnFamily,null,columnName), consistencyLevel)
+      row|(new ColumnPath(columnFamily,null,columnName), consistencyLevel) match {
+        case Some(colOrSuperColumn) => {
+          if(colOrSuperColumn.column != null) {
+            Some(colOrSuperColumn.column)
+          } else {
+            throw new IllegalArgumentException("trying to treat " + columnFamily + " as a super column family")
+          }
+        }
+        case None => None
+      }
 
   def |#() : Int =
       |#(consistencyLevel)
 
   def |#(consistencyLevel : Int) : Int =
-      client.get_count(keyspace, key, columnParent, consistencyLevel)
+      row|#(columnParent, consistencyLevel)
 
   def ++|(columnName : Array[Byte], value : Array[Byte]) : Unit =
       ++|(columnName,value,obtainedAt,consistencyLevel)
@@ -60,11 +68,11 @@ class CassidyColumnFamily(client : Cassandra.Client, keyspace : String, key : St
       ++|(columnName,value,timestamp,consistencyLevel)
 
   def ++|(columnName : Array[Byte], value : Array[Byte], timestamp : Long, consistencyLevel : Int) =
-      client.insert(keyspace, key, new ColumnPath(columnFamily,null,columnName), value,timestamp,consistencyLevel)
+      row++|(new ColumnPath(columnFamily,null,columnName), value,timestamp,consistencyLevel)
 
   def --(columnName : Array[Byte], timestamp : Long) : Unit =
       --(columnName,timestamp,consistencyLevel)
 
   def --(columnName : Array[Byte], timestamp : Long, consistencyLevel : Int) : Unit =
-      client.remove(keyspace, key, new ColumnPath(columnFamily,null,columnName), timestamp, consistencyLevel)
+      row--(new ColumnPath(columnFamily,null,columnName), timestamp, consistencyLevel)
 }

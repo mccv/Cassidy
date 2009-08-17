@@ -54,10 +54,10 @@ object Main {
         }
 
         // play with super columns
-        s/"Delicious"/"mccv"*"UserBookmarks"/"http://www.twitter.com"/"description" ++| "the twitter page"
+        s/"Delicious"/"mccv"/^"UserBookmarks"/"http://www.twitter.com"/"description" ++| "the twitter page"
 
         // read out super columns
-        val scf = s/"Delicious"/"mccv"*"UserBookmarks"
+        val scf = s/"Delicious"/"mccv"/^"UserBookmarks"
         println((scf|#) + " bookmarks for mccv")
         scf/"http://www.twitter.com"/"description"| match {
           case Some(col) => println("desc for twitter page is " + new String(col.value))

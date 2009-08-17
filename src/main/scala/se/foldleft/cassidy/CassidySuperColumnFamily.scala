@@ -10,7 +10,7 @@ import org.apache.cassandra.service._
  * To change this template use File | Settings | File Templates.
  */
 
-class CassidySuperColumnFamily(client : Cassandra.Client, keyspace : String, key : String, columnFamily : String, obtainedAt : Long, consistencyLevel : Int){
+class CassidySuperColumnFamily(row : Row, val columnFamily : String, obtainedAt : Long, consistencyLevel : Int){
 
   import scala.collection.jcl.Conversions._
   import org.scala_tools.javautils.Imports._
@@ -22,7 +22,7 @@ class CassidySuperColumnFamily(client : Cassandra.Client, keyspace : String, key
     if(colOrSuper != null) Some(colOrSuper.super_column) else None
 
   def /(columnName : Array[Byte]) = {
-    new CassidySuperColumn(client,keyspace,key,columnFamily,columnName,obtainedAt,consistencyLevel)
+    new CassidySuperColumn(this,columnName,obtainedAt,consistencyLevel)
   }
   def /(start : Array[Byte],end : Array[Byte], ascending : Boolean, count : Int) : List[SuperColumn] =
       /(start,end,ascending,count,consistencyLevel)
@@ -39,19 +39,44 @@ class CassidySuperColumnFamily(client : Cassandra.Client, keyspace : String, key
       /(new SlicePredicate(colNames.asJava,null),consistencyLevel)
 
   def /(predicate : SlicePredicate, consistencyLevel : Int) : List[SuperColumn] =
-      client.get_slice(keyspace, key, columnParent, predicate, consistencyLevel).toList
+      row/(columnParent, predicate, consistencyLevel)
 
-  def |(columnName : Array[Byte]) : Option[SuperColumn] =
-      |(columnName,consistencyLevel)
+  def |(superColumnName : Array[Byte]) : Option[SuperColumn] =
+      |(superColumnName,consistencyLevel)
 
-  def |(columnName : Array[Byte], consistencyLevel : Int) : Option[SuperColumn] =
-      client.get(keyspace, key, new ColumnPath(columnFamily,null,columnName), consistencyLevel)
+  def |(superColumnName : Array[Byte], consistencyLevel : Int) : Option[SuperColumn] =
+      row|(new ColumnPath(columnFamily,superColumnName,null), consistencyLevel) match {
+        case Some(colOrSuperColumn) => {
+          if(colOrSuperColumn.super_column != null) {
+            Some(colOrSuperColumn.super_column)
+          } else {
+            throw new IllegalArgumentException("trying to treat " + columnFamily + " as a regular column family")
+          }
+        }
+        case None => None
+      }
+
+
+  def |(superColumnName : Array[Byte], columnName : Array[Byte]) : Option[Column] =
+      |(superColumnName,columnName,consistencyLevel)
+
+  def |(superColumnName : Array[Byte], columnName : Array[Byte], consistencyLevel : Int) : Option[Column] =
+      row|(new ColumnPath(columnFamily,superColumnName,columnName), consistencyLevel)  match {
+        case Some(colOrSuperColumn) => {
+          if(colOrSuperColumn.column != null) {
+            Some(colOrSuperColumn.column)
+          } else {
+            throw new IllegalArgumentException("trying to treat " + columnFamily + ":" + superColumnName + " as a super column family")
+          }
+        }
+        case None => None
+      }
 
   def |#() : Int =
       |#(consistencyLevel)
 
   def |#(consistencyLevel : Int) : Int =
-      client.get_count(keyspace, key, columnParent, consistencyLevel)
+      row|#(columnParent, consistencyLevel)
 
   def ++|(superColumn : Array[Byte], columnName : Array[Byte], value : Array[Byte]) : Unit =
       ++|(superColumn, columnName,value,obtainedAt,consistencyLevel)
@@ -60,11 +85,11 @@ class CassidySuperColumnFamily(client : Cassandra.Client, keyspace : String, key
       ++|(superColumn, columnName,value,timestamp,consistencyLevel)
 
   def ++|(superColumn : Array[Byte], columnName : Array[Byte], value : Array[Byte], timestamp : Long, consistencyLevel : Int) =
-      client.insert(keyspace, key, new ColumnPath(columnFamily,superColumn,columnName), value,timestamp,consistencyLevel)
+      row++|(new ColumnPath(columnFamily,superColumn,columnName), value,timestamp,consistencyLevel)
 
   def --(columnName : Array[Byte], timestamp : Long) : Unit =
       --(columnName,timestamp,consistencyLevel)
 
   def --(columnName : Array[Byte], timestamp : Long, consistencyLevel : Int) : Unit =
-      client.remove(keyspace, key, new ColumnPath(columnFamily,null,columnName), timestamp, consistencyLevel)
+      row--(new ColumnPath(columnFamily,null,columnName), timestamp, consistencyLevel)
 }
