@@ -10,6 +10,7 @@ import org.apache.thrift.transport._
 import org.apache.thrift.protocol._
 import java.io.{Flushable,Closeable}
 import se.foldleft.pool._
+import scala.collection.mutable.{Map,HashMap}
 
 trait Session extends Closeable with Flushable
 {
@@ -91,6 +92,99 @@ trait Session extends Closeable with Flushable
 
 }
 
+trait BatchSession extends Session {
+  val batchMap = HashMap[String,Map[String,BatchMutation]]()
+  val superBatchMap = HashMap[String,Map[String,BatchMutationSuper]]()
+
+  import scala.collection.jcl.Conversions._
+  
+  override def ++|(keyspace : String, key : String, columnPath : ColumnPath, value : Array[Byte], timestamp : Long, consistencyLevel : Int) = {
+    if(columnPath != null && columnPath.column != null && columnPath.column_family != null){
+      if(columnPath.super_column == null){
+        insertNormal(keyspace,key,columnPath,value,timestamp)
+      } else {
+        insertSuper(keyspace,key,columnPath,value,timestamp)
+      }
+    }else{
+      throw new IllegalArgumentException("malformed column path " + columnPath)
+    }
+  }
+
+  def insertNormal(keyspace: String, id: String, columnPath : ColumnPath, value : Array[Byte], timestamp : Long) = {
+    val keyspaceMap = batchMap.getOrElseUpdate(keyspace,HashMap[String,BatchMutation]())
+    val batch = keyspaceMap.getOrElseUpdate(id,new BatchMutation())
+    batch.key = id
+    if(batch.cfmap == null){
+      batch.cfmap = new java.util.HashMap[java.lang.String,java.util.List[Column]]()
+    }
+    if(batch.cfmap.get(columnPath.column_family) == null){
+      batch.cfmap.put(columnPath.column_family, new java.util.ArrayList[Column]())
+    }
+    val colTList = batch.cfmap.get(columnPath.column_family)
+    val colT = new Column()
+    colT.name = columnPath.column
+    colT.timestamp = timestamp
+    colT.value = value
+    colTList.add(colT)
+  }
+
+  def flush():Unit = {
+    batchMap.foreach((keyspaceEntry:Tuple2[String,Map[String,BatchMutation]]) => {
+      keyspaceEntry._2.foreach((entry:Tuple2[String,BatchMutation]) => {
+        /*println("batch mutation for keyspace " + keyspaceEntry._1)
+        println("batch mutation key " + entry._2.key)
+        entry._2.cfmap.foreach((cfmap) => {
+          cfmap._2.foreach((col) => {
+            println("\tcol name = " + col.name)
+            println("\tcol value = " + new String(col.value))
+            println("\tcol ts = " + col.timestamp)
+          })
+        })*/
+        ++|(keyspaceEntry._1,entry._2,consistencyLevel)
+      })
+    })
+    batchMap.clear()
+    superBatchMap.foreach((keyspaceEntry:Tuple2[String,Map[String,BatchMutationSuper]]) => {
+      keyspaceEntry._2.foreach((entry:Tuple2[String,BatchMutationSuper]) => {
+        ++|^(keyspaceEntry._1,entry._2,consistencyLevel)
+      })
+    })
+    superBatchMap.clear()
+  }
+
+  def insertSuper(keyspace: String, id: String, columnPath : ColumnPath, value: Array[Byte], timestamp: Long) = {
+
+    val keyspaceMap = superBatchMap.getOrElseUpdate(keyspace,Map[String,BatchMutationSuper]())
+    val batch = keyspaceMap.getOrElseUpdate(id,new BatchMutationSuper())
+    batch.key = id
+    if(batch.cfmap == null){
+      batch.cfmap = new java.util.HashMap[java.lang.String,java.util.List[SuperColumn]]()
+    }
+    if(batch.cfmap.get(columnPath.column_family) == null){
+      batch.cfmap.put(columnPath.column_family, new java.util.ArrayList[SuperColumn]())
+    }
+
+    val superColTList = batch.cfmap.get(columnPath.column_family)
+    val superColT = superColTList.find(_.name == columnPath.super_column) match {
+      case Some(superCol) => superCol
+      case None => {
+        val superCol = new SuperColumn()
+        superCol.name = columnPath.super_column
+        superCol.columns = new java.util.ArrayList[Column]()
+        superColTList.add(superCol)
+        superCol
+      }
+    }
+
+    val colT = new Column
+    colT.name = columnPath.column
+    colT.timestamp = timestamp
+    colT.value = value
+    superColT.columns.add(colT)
+  }
+
+}
+
 class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol, outputProtocol : Protocol, defConsistency : Int) extends Closeable
 {
     def this(transportPool : Pool[T], ioProtocol : Protocol,consistencyLevel : Int) = this(transportPool,ioProtocol,ioProtocol,consistencyLevel)
@@ -112,8 +206,33 @@ class Cassidy[T <: TTransport](transportPool : Pool[T], inputProtocol : Protocol
         }
     }
 
-    def doWork[R](work : (Session) => R) = {
+    def newBatchSession : Session = newBatchSession(defConsistency)
+  
+    def newBatchSession(consistency : Int) : Session = {
+        val t = transportPool.borrowObject
+
+        val c = new Cassandra.Client(inputProtocol(t),outputProtocol(t))
+
+        new BatchSession
+        {
+            val client = c
+            val obtainedAt = System.currentTimeMillis
+            val consistencyLevel = consistency //What's the sensible default?
+            override def flush = {super.flush(); t.flush()}
+            def close = transportPool.returnObject(t)
+        }
+    }
+    def doWork[R](work : (Session) => R):R = {
         val s = newSession
+        doWork(s,work)
+    }
+
+    def doBatchWork[R](work : (Session) => R):R = {
+      val s = newBatchSession
+      doWork(s,work)
+    }
+
+    protected def doWork[R](s : Session, work : (Session) => R):R = {
         try
         {
             val r = work(s)

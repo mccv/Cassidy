@@ -37,16 +37,17 @@ object Main {
      */
     c.doWork {
       s => {
+        val key = "mccv"
         println("exercising inserts")
-        s ++| ("Delicious", "mccv", new ColumnPath("Users", null, "name"), "Mark McBride")
-        s / ("Delicious") ++| ("mccv", new ColumnPath("Users", null, "location"), "Santa Clara")
-        s / ("Delicious") / ("mccv") ++| (new ColumnPath("Users", null, "state"), "CA")
-        s/"Delicious"/"mccv"/"Users" ++| ("age","34-ish")
-        s/"Delicious"/"mccv"/"Users"/"weight" ++| "too much"
+        s ++| ("Delicious", key, new ColumnPath("Users", null, "name"), "Mark McBride")
+        s / ("Delicious") ++| (key, new ColumnPath("Users", null, "location"), "Santa Clara")
+        s / ("Delicious") / (key) ++| (new ColumnPath("Users", null, "state"), "CA")
+        s/"Delicious"/key/"Users" ++| ("age","34-ish")
+        s/"Delicious"/key/"Users"/"weight" ++| "too much"
 
         // now get all the values back
         println("exercising reads")
-        val cf = s/"Delicious"/"mccv"/"Users"
+        val cf = s/"Delicious"/key/"Users"
         println("users/mccv has " + (cf|#) + " columns")
         cf/"name"| match {
           case Some(col) => println("mccv's name is " + new String(col.value))
@@ -54,16 +55,49 @@ object Main {
         }
 
         // play with super columns
-        s/"Delicious"/"mccv"/^"UserBookmarks"/"http://www.twitter.com"/"description" ++| "the twitter page"
+        s/"Delicious"/key/^"UserBookmarks"/"http://www.twitter.com"/"description" ++| "the twitter page"
 
         // read out super columns
-        val scf = s/"Delicious"/"mccv"/^"UserBookmarks"
+        val scf = s/"Delicious"/key/^"UserBookmarks"
         println((scf|#) + " bookmarks for mccv")
         scf/"http://www.twitter.com"/"description"| match {
           case Some(col) => println("desc for twitter page is " + new String(col.value))
           case None => println("no desc for this bookmark")
 
         }
+      }
+    }
+    c.doBatchWork {
+      s => {
+        val key = "mccv2"
+        println("exercising batch inserts")
+        s ++| ("Delicious", key, new ColumnPath("Users", null, "name"), "Mark McBride")
+        s / ("Delicious") ++| (key, new ColumnPath("Users", null, "location"), "Santa Clara")
+        s / ("Delicious") / (key) ++| (new ColumnPath("Users", null, "state"), "CA")
+        s/"Delicious"/key/"Users" ++| ("age","34-ish")
+        s/"Delicious"/key/"Users"/"weight" ++| "too much"
+        s.flush()
+        // now get all the values back
+        println("exercising reads")
+        val cf = s/"Delicious"/key/"Users"
+        println("users/mccv has " + (cf|#) + " columns")
+        cf/"name"| match {
+          case Some(col) => println("mccv's name is " + new String(col.value))
+          case None => println("no name found for mccv")
+        }
+
+        // play with super columns
+        s/"Delicious"/key/^"UserBookmarks"/"http://www.twitter.com"/"description" ++| "the twitter page"
+        s.flush()
+        // read out super columns
+        val scf = s/"Delicious"/key/^"UserBookmarks"
+        println((scf|#) + " bookmarks for mccv")
+        scf/"http://www.twitter.com"/"description"| match {
+          case Some(col) => println("desc for twitter page is " + new String(col.value))
+          case None => println("no desc for this bookmark")
+
+        }
+
       }
     }
   }
