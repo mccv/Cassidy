@@ -92,7 +92,12 @@ trait Session extends Closeable with Flushable
 
 }
 
+/**
+ * BatchSession coalesces inserts into a set of BatchMutation and/or BatchMutationSuper objects.
+ * When flush() is called these batch operations are applied.
+ */
 trait BatchSession extends Session {
+  // keep track of the various batch operations we'll eventually commit
   val batchMap = HashMap[String,Map[String,BatchMutation]]()
   val superBatchMap = HashMap[String,Map[String,BatchMutationSuper]]()
 
@@ -100,19 +105,23 @@ trait BatchSession extends Session {
   
   override def ++|(keyspace : String, key : String, columnPath : ColumnPath, value : Array[Byte], timestamp : Long, consistencyLevel : Int) = {
     if(columnPath != null && columnPath.column != null && columnPath.column_family != null){
+      // normal and super columns get handled differently
       if(columnPath.super_column == null){
         insertNormal(keyspace,key,columnPath,value,timestamp)
       } else {
         insertSuper(keyspace,key,columnPath,value,timestamp)
       }
     }else{
-      throw new IllegalArgumentException("malformed column path " + columnPath)
+      throw new IllegalArgumentException("incomplete column path " + columnPath)
     }
   }
 
   def insertNormal(keyspace: String, id: String, columnPath : ColumnPath, value : Array[Byte], timestamp : Long) = {
+    // add an entry to batchMap... this feels overly convoluted
     val keyspaceMap = batchMap.getOrElseUpdate(keyspace,HashMap[String,BatchMutation]())
     val batch = keyspaceMap.getOrElseUpdate(id,new BatchMutation())
+
+    // make sure we get a good, initialized BatchMutation out of our map
     batch.key = id
     if(batch.cfmap == null){
       batch.cfmap = new java.util.HashMap[java.lang.String,java.util.List[Column]]()
@@ -120,6 +129,8 @@ trait BatchSession extends Session {
     if(batch.cfmap.get(columnPath.column_family) == null){
       batch.cfmap.put(columnPath.column_family, new java.util.ArrayList[Column]())
     }
+
+    // now add our new column to the list
     val colTList = batch.cfmap.get(columnPath.column_family)
     val colT = new Column()
     colT.name = columnPath.column
@@ -128,6 +139,46 @@ trait BatchSession extends Session {
     colTList.add(colT)
   }
 
+
+  def insertSuper(keyspace: String, id: String, columnPath : ColumnPath, value: Array[Byte], timestamp: Long) = {
+    // if insertNormal feels overly convoluted, this one reeks of overconvolution
+    val keyspaceMap = superBatchMap.getOrElseUpdate(keyspace,Map[String,BatchMutationSuper]())
+    val batch = keyspaceMap.getOrElseUpdate(id,new BatchMutationSuper())
+
+    // make sure we get a good, initilazed BatchMutationSuper out of our map
+    batch.key = id
+    if(batch.cfmap == null){
+      batch.cfmap = new java.util.HashMap[java.lang.String,java.util.List[SuperColumn]]()
+    }
+    if(batch.cfmap.get(columnPath.column_family) == null){
+      batch.cfmap.put(columnPath.column_family, new java.util.ArrayList[SuperColumn]())
+    }
+
+    // now make sure we get a good SuperColumn out of our BatchMutationSuper
+    val superColTList = batch.cfmap.get(columnPath.column_family)
+    val superColT = superColTList.find(_.name == columnPath.super_column) match {
+      case Some(superCol) => superCol
+      case None => {
+        val superCol = new SuperColumn()
+        superCol.name = columnPath.super_column
+        superCol.columns = new java.util.ArrayList[Column]()
+        superColTList.add(superCol)
+        superCol
+      }
+    }
+
+    // and finally, add our new column
+    val colT = new Column
+    colT.name = columnPath.column
+    colT.timestamp = timestamp
+    colT.value = value
+    superColT.columns.add(colT)
+  }
+
+  /**
+   * applies all batch operations in batchMap and superBatchMap, then clears out
+   * those maps
+   */
   def flush():Unit = {
     batchMap.foreach((keyspaceEntry:Tuple2[String,Map[String,BatchMutation]]) => {
       keyspaceEntry._2.foreach((entry:Tuple2[String,BatchMutation]) => {
@@ -152,36 +203,7 @@ trait BatchSession extends Session {
     superBatchMap.clear()
   }
 
-  def insertSuper(keyspace: String, id: String, columnPath : ColumnPath, value: Array[Byte], timestamp: Long) = {
 
-    val keyspaceMap = superBatchMap.getOrElseUpdate(keyspace,Map[String,BatchMutationSuper]())
-    val batch = keyspaceMap.getOrElseUpdate(id,new BatchMutationSuper())
-    batch.key = id
-    if(batch.cfmap == null){
-      batch.cfmap = new java.util.HashMap[java.lang.String,java.util.List[SuperColumn]]()
-    }
-    if(batch.cfmap.get(columnPath.column_family) == null){
-      batch.cfmap.put(columnPath.column_family, new java.util.ArrayList[SuperColumn]())
-    }
-
-    val superColTList = batch.cfmap.get(columnPath.column_family)
-    val superColT = superColTList.find(_.name == columnPath.super_column) match {
-      case Some(superCol) => superCol
-      case None => {
-        val superCol = new SuperColumn()
-        superCol.name = columnPath.super_column
-        superCol.columns = new java.util.ArrayList[Column]()
-        superColTList.add(superCol)
-        superCol
-      }
-    }
-
-    val colT = new Column
-    colT.name = columnPath.column
-    colT.timestamp = timestamp
-    colT.value = value
-    superColT.columns.add(colT)
-  }
 
 }
 
